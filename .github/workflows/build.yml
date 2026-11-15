@@ -26,10 +26,22 @@ jobs:
         python --version
 
     - name: Build kernel
+      id: build
       run: |
         mkdir -p out
         make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} python=python2 ${DEFCONFIG}
-        make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} python=python2 -j$(nproc) 2>&1 | tail -50
+        set -o pipefail
+        make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} python=python2 -j$(nproc) 2>&1 | tee build.log | tail -20
+        echo "=== build exit ok ==="
+
+    - name: Show errors if any
+      if: failure() || steps.build.outcome == 'failure'
+      run: |
+        if [ -f build.log ]; then
+          grep -n -B2 -A8 -iE "error:|error 1|error 2|\*\*\*.*Error" build.log | head -80 || echo "no error lines found"
+          echo "=== last 30 lines ==="
+          tail -30 build.log
+        fi
 
     - name: Check artifacts
       run: |

@@ -18,7 +18,12 @@ jobs:
     - name: Install toolchain
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu make bc libssl-dev flex bison libncurses-dev python2 cpio
+        sudo apt-get install -y gcc-aarch64-linux-gnu make bc libssl-dev flex bison libncurses-dev cpio
+        echo "deb [trusted=yes] http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee /etc/apt/sources.list.d/focal.list
+        sudo apt-get update
+        sudo apt-get install -y python2
+        sudo ln -sf /usr/bin/python2 /usr/local/bin/python
+        python --version
 
     - name: Build kernel
       run: |

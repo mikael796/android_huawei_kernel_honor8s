@@ -35,8 +35,15 @@ jobs:
         # gcc>=10 defaults to -fno-common; 4.9-era dtc breaks (yylloc multiple definition)
         echo 'HOSTCFLAGS += -fcommon' >> Makefile
         # MTK sprinkles -Werror into subdir Makefiles (ccflags-y), overriding global flags
-        grep -rl -- -Werror --include="Makefile" --include="Kbuild" . 2>/dev/null | xargs -r sed -i 's/-Werror\b//g'
-        echo "Werror purged from: $(grep -rl -- -Werror --include=Makefile --include=Kbuild . 2>/dev/null | wc -l) files (should be 0)"
+        # NOTE: include filters MUST come before -- or grep treats them as file operands
+        # and recurses over ALL files (would strip -Werror from scripts/Kbuild.include
+        # which legitimately needs it for cc-option compiler tests)
+        # sed targets ONLY standalone -Werror (followed by space/backslash/EOL),
+        # NOT -Werror=foo or -Werror-foo diagnostics flags in root Makefile
+        grep -rl --include="Makefile" --include="Kbuild" -- -Werror . 2>/dev/null | xargs -r sed -E -i 's/-Werror([[:space:]\]|$)/\1/g'
+        echo "standalone -Werror remaining: $(grep -rl --include=Makefile --include=Kbuild -E -- '-Werror([[:space:]]|$)' . 2>/dev/null | wc -l) files (should be 0)"
+        grep -q -- '-Werror $(KBUILD_CPPFLAGS)' scripts/Kbuild.include && echo "Kbuild.include intact" || echo "WARNING: Kbuild.include damaged"
+        grep -q -- 'cc-option,-Werror=implicit-int' Makefile && echo "root Makefile intact" || echo "WARNING: root Makefile damaged"
         # MTK bug in stat.c: uses idle_time/iowait_time where idle_usecs/iowait_usecs declared
         sed -i 's/idle_time = get_cpu_idle_time_us_wo_cpuoffline/idle_usecs = get_cpu_idle_time_us_wo_cpuoffline/' fs/proc/stat.c
         sed -i 's/iowait_time = get_cpu_iowait_time_us_wo_cpuoffline/iowait_usecs = get_cpu_iowait_time_us_wo_cpuoffline/' fs/proc/stat.c

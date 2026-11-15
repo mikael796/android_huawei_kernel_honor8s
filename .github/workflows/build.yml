@@ -28,8 +28,8 @@ jobs:
     - name: Build kernel
       run: |
         mkdir -p out
-        make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} ${DEFCONFIG}
-        make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} -j$(nproc) 2>&1 | tail -50
+        make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} python=python2 ${DEFCONFIG}
+        make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} python=python2 -j$(nproc) 2>&1 | tail -50
 
     - name: Check artifacts
       run: |

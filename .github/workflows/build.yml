@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  DEFCONFIG: merge_full_k61v1_64_mex_a32_defconfig
+  DEFCONFIG: honor8s_user_defconfig
   ARCH: arm64
   CROSS_COMPILE: aarch64-linux-gnu-
 

@@ -44,6 +44,11 @@ jobs:
         echo "standalone -Werror remaining: $(grep -rl --include=Makefile --include=Kbuild -E -- '-Werror([[:space:]]|$)' . 2>/dev/null | wc -l) files (should be 0)"
         grep -q -- '-Werror $(KBUILD_CPPFLAGS)' scripts/Kbuild.include && echo "Kbuild.include intact" || echo "WARNING: Kbuild.include damaged"
         grep -q -- 'cc-option,-Werror=implicit-int' Makefile && echo "root Makefile intact" || echo "WARNING: root Makefile damaged"
+        # old gcc didn't know -Werror=incompatible-pointer-types so cc-option dropped it;
+        # gcc-9 knows it -> MTK code full of pointer type mismatches (blk-cgroup, tfa98xx) -> build dies.
+        # remove that one flag, keep implicit-int/strict-prototypes/date-time
+        sed -i '/cc-option,-Werror=incompatible-pointer-types/d' Makefile
+        grep -q -- 'incompatible-pointer-types' Makefile && echo "WARNING: still present" || echo "incompatible-pointer-types flag removed"
         # MTK bug in stat.c: uses idle_time/iowait_time where idle_usecs/iowait_usecs declared
         sed -i 's/idle_time = get_cpu_idle_time_us_wo_cpuoffline/idle_usecs = get_cpu_idle_time_us_wo_cpuoffline/' fs/proc/stat.c
         sed -i 's/iowait_time = get_cpu_iowait_time_us_wo_cpuoffline/iowait_usecs = get_cpu_iowait_time_us_wo_cpuoffline/' fs/proc/stat.c

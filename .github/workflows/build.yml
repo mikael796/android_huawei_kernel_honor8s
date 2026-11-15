@@ -34,7 +34,12 @@ jobs:
       run: |
         # gcc>=10 defaults to -fno-common; 4.9-era dtc breaks (yylloc multiple definition)
         echo 'HOSTCFLAGS += -fcommon' >> Makefile
-        tail -1 Makefile
+        echo 'KBUILD_CFLAGS += -Wno-error' >> Makefile
+        tail -2 Makefile
+        # MTK bug in stat.c: uses idle_time/iowait_time where idle_usecs/iowait_usecs declared
+        sed -i 's/idle_time = get_cpu_idle_time_us_wo_cpuoffline/idle_usecs = get_cpu_idle_time_us_wo_cpuoffline/' fs/proc/stat.c
+        sed -i 's/iowait_time = get_cpu_iowait_time_us_wo_cpuoffline/iowait_usecs = get_cpu_iowait_time_us_wo_cpuoffline/' fs/proc/stat.c
+        grep -n "wo_cpuoffline" fs/proc/stat.c
         mkdir -p out
         make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} python=python2 ${DEFCONFIG}
         set -o pipefail

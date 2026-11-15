@@ -34,8 +34,9 @@ jobs:
       run: |
         # gcc>=10 defaults to -fno-common; 4.9-era dtc breaks (yylloc multiple definition)
         echo 'HOSTCFLAGS += -fcommon' >> Makefile
-        echo 'KBUILD_CFLAGS += -Wno-error' >> Makefile
-        tail -2 Makefile
+        # MTK sprinkles -Werror into subdir Makefiles (ccflags-y), overriding global flags
+        grep -rl -- -Werror --include="Makefile" --include="Kbuild" . 2>/dev/null | xargs -r sed -i 's/-Werror\b//g'
+        echo "Werror purged from: $(grep -rl -- -Werror --include=Makefile --include=Kbuild . 2>/dev/null | wc -l) files (should be 0)"
         # MTK bug in stat.c: uses idle_time/iowait_time where idle_usecs/iowait_usecs declared
         sed -i 's/idle_time = get_cpu_idle_time_us_wo_cpuoffline/idle_usecs = get_cpu_idle_time_us_wo_cpuoffline/' fs/proc/stat.c
         sed -i 's/iowait_time = get_cpu_iowait_time_us_wo_cpuoffline/iowait_usecs = get_cpu_iowait_time_us_wo_cpuoffline/' fs/proc/stat.c

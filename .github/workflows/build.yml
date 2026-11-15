@@ -1,35 +1,48 @@
-name: Build on Tag
+name: Build Kernel
 
 on:
   workflow_dispatch:
 
+env:
+  DEFCONFIG: merge_full_k61v1_64_mex_a32_defconfig
+  ARCH: arm64
+  CROSS_COMPILE: aarch64-linux-gnu-
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout kernel source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: Checkout zipper
-      uses: actions/checkout@v2
+    - name: Install toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu make bc libssl-dev flex bison libncurses-dev python2 cpio
+
+    - name: Build kernel
+      run: |
+        mkdir -p out
+        make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} ${DEFCONFIG}
+        make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} -j$(nproc) 2>&1 | tail -50
+
+    - name: Check artifacts
+      run: |
+        ls -la out/arch/arm64/boot/ || true
+        test -f out/arch/arm64/boot/Image.gz-dtb && echo "Image.gz-dtb OK" || echo "MISSING Image.gz-dtb"
+        test -f out/arch/arm64/boot/Image.gz-dtb || exit 1
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
       with:
-        repository: lemniskett/AnyKernel3
-        path: zipper
+        name: kernel-honor8s-4.9.135
+        path: out/arch/arm64/boot/Image.gz-dtb
 
-    - name: Android kernel build
-      uses: lemniskett/android-kernel-actions@master
-      id: build
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: out/arch/arm64/boot/Image.gz-dtb
+        name: Honor 8S Kernel 4.9.135
+        tag_name: kernel-${{ github.run_id }}
       env:
-        NAME: touchGrassKernel
-        PYTHON_VERSION: 2
-      with:
-        arch: arm64
-        compiler: gcc/9
-        defconfig: kansas_defconfig
-        image: Image-dtb
-
-    - name: Release build
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: ${{ steps.build.outputs.outfile }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

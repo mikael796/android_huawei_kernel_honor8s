@@ -28,6 +28,9 @@ jobs:
     - name: Build kernel
       id: build
       run: |
+        # gcc>=10 defaults to -fno-common; 4.9-era dtc breaks (yylloc multiple definition)
+        sed -i 's/^HOSTCFLAGS\s*=\(.*\)$/HOSTCFLAGS =\1 -fcommon/' scripts/Makefile.host
+        grep HOSTCFLAGS scripts/Makefile.host | head -2
         mkdir -p out
         make O=out ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} python=python2 ${DEFCONFIG}
         set -o pipefail
